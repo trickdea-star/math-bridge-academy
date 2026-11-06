@@ -1,0 +1,29 @@
+{
+  "name": "Math Bridge Academy",
+  "short_name": "Math Bridge",
+  "description": "Math videos, games, flash cards, quizzes and courses for kids ages 5 to 9.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#EAF5FF",
+  "theme_color": "#EAF5FF",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
