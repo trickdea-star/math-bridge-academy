@@ -160,7 +160,7 @@ window.MBA = (function(){
       .replace(/\+/g, ' plus ').replace(/=/g, ' equals ')
       .replace(/\s+/g, ' ').trim();
   }
-  const canSpeak = () => !!(synth && settings.voice);
+  const canSpeak = () => !!(synth && settings.voice && settings.sound);
   function say(text, onend){
     if(!canSpeak()) return false;
     try{
@@ -399,9 +399,28 @@ window.MBA = (function(){
     renderStars(false);
     const sb = $('#soundBtn'), vb = $('#voiceBtn');
     sb.innerHTML = ICON.sound; vb.innerHTML = ICON.voice;
-    const paint = () => { sb.setAttribute('aria-pressed', String(settings.sound)); vb.setAttribute('aria-pressed', String(settings.voice)); vb.hidden = !synth; };
-    sb.addEventListener('click', () => { settings.sound = !settings.sound; saveSettings(); paint(); sfx.tap(); toast(settings.sound ? 'Sound effects on' : 'Sound effects off'); });
-    vb.addEventListener('click', () => { settings.voice = !settings.voice; saveSettings(); paint(); if(!settings.voice) hush(); toast(settings.voice ? 'Read-aloud on' : 'Read-aloud off'); });
+    // Speaker = mute everything (narrator and effects). Speech bubble = narrator only.
+    const paint = () => {
+      sb.setAttribute('aria-pressed', String(settings.sound));
+      sb.setAttribute('aria-label', settings.sound ? 'Mute all sound' : 'Turn sound back on');
+      sb.title = settings.sound ? 'Mute all sound' : 'Sound is off';
+      vb.setAttribute('aria-pressed', String(settings.voice && settings.sound));
+      vb.setAttribute('aria-label', settings.voice && settings.sound ? 'Turn the narrator off' : 'Turn the narrator on');
+      vb.title = settings.voice && settings.sound ? 'Narrator on' : 'Narrator off';
+      vb.hidden = !synth;
+    };
+    sb.addEventListener('click', () => {
+      settings.sound = !settings.sound; saveSettings(); paint();
+      if(settings.sound) sfx.tap(); else hush();
+      toast(settings.sound ? 'Sound on' : 'All sound off, narrator too');
+    });
+    vb.addEventListener('click', () => {
+      if(!settings.sound){ settings.sound = true; settings.voice = true; }
+      else settings.voice = !settings.voice;
+      saveSettings(); paint();
+      if(!canSpeak()) hush();
+      toast(canSpeak() ? 'Narrator on' : 'Narrator off');
+    });
     paint();
     renderProfile();
     const pb = $('#playerBtn'); if(pb) pb.addEventListener('click', () => go('grownups'));
