@@ -151,12 +151,34 @@ window.MBA = (function(){
   /* ---------- read-aloud (browser speech) ---------- */
   const synth = ('speechSynthesis' in window) ? window.speechSynthesis : null;
   let voice = null, speakTimer = null;
+  const voiceWatchers = [];
+  // Rank the device's voices so the most human-sounding one wins: neural "Natural" voices (Edge), iPhone
+  // "Premium"/"Enhanced" downloads, Google voices. Novelty and old robotic voices sink to the bottom.
+  const ROBOTIC = /fred|albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|espeak|junior|ralph|kathy|grandma|grandpa|rocko|shelley|reed|sandy|eddy|flo\b/i;
+  function voiceScore(v){
+    const n = v.name || '';
+    let s = 0;
+    if(/natural|neural/i.test(n)) s += 100;
+    if(/premium/i.test(n)) s += 95;
+    if(/enhanced/i.test(n)) s += 70;
+    if(/siri/i.test(n)) s += 60;
+    if(/google/i.test(n)) s += 45;
+    if(/\b(ava|zoe|samantha|allison|nicky|susan|evan|nathan|aria|jenny|ana|michelle|emma|libby|sonia|serena|karen|moira|tessa|guy|davis)\b/i.test(n)) s += 20;
+    if(/en[-_]US/i.test(v.lang)) s += 10; else if(/en[-_](GB|AU|IE|CA|NZ)/i.test(v.lang)) s += 5;
+    if(v.localService === false) s += 5;
+    if(ROBOTIC.test(n)) s -= 300;
+    return s;
+  }
+  const englishVoices = () => synth ? (synth.getVoices() || []).filter(v => /^en([-_]|$)/i.test(v.lang)).sort((a, b) => voiceScore(b) - voiceScore(a)) : [];
   function pickVoice(){
     if(!synth) return;
-    const en = (synth.getVoices() || []).filter(v => /^en([-_]|$)/i.test(v.lang));
-    voice = en.find(v => /aria|jenny|samantha|zira|google us english|natural/i.test(v.name)) || en.find(v => /en[-_]US/i.test(v.lang)) || en[0] || null;
+    const en = englishVoices();
+    voice = (settings.voiceName && en.find(v => v.name === settings.voiceName)) || en[0] || null;
+    voiceWatchers.forEach(f => { try{ f(); }catch(e){} });
   }
   if(synth){ pickVoice(); try{ synth.addEventListener('voiceschanged', pickVoice); }catch(e){ synth.onvoiceschanged = pickVoice; } }
+  function setVoice(name){ settings.voiceName = name || ''; saveSettings(); pickVoice(); }
+  const voiceInfo = () => ({ list: englishVoices().map(v => ({ name: v.name, lang: v.lang, natural: voiceScore(v) >= 45 })), current: voice ? voice.name : '', chosen: settings.voiceName || '' });
   function speakable(t){
     return String(t).replace(/<[^>]+>/g, '')
       .replace(/=\s*\?/g, ' equals what?')
@@ -174,7 +196,8 @@ window.MBA = (function(){
       const u = new SpeechSynthesisUtterance(speakable(text));
       if(voice) u.voice = voice;
       u.lang = (voice && voice.lang) || 'en-US';
-      u.rate = 0.92; u.pitch = 1.1;
+      // Natural voices sound best at their own pitch; a raised pitch is what made the old ones sound like robots.
+      u.rate = 0.95; u.pitch = 1;
       if(onend){ u.onend = onend; u.onerror = onend; }
       // iPhone and iPad only speak when speech starts inside a tap, so speak at once when nothing else is talking.
       if(!busy){ synth.speak(u); } else { speakTimer = setTimeout(() => synth.speak(u), 60); }
@@ -281,7 +304,7 @@ window.MBA = (function(){
     return Object.keys(tr).map(k => tr[k]).filter(e => !op || op === 'mix' || e.op === op);
   }
   function nextProblem(op, level){
-    const real = op === 'mix' ? pick(['add', 'sub', 'mul', 'div']) : op;
+    const real = Array.isArray(op) ? pick(op) : op === 'mix' ? pick(['add', 'sub', 'mul', 'div']) : op;
     if(level !== 'auto') return makeProblem(real, level);
     const tr = trickyFor(real).filter(e => e.text.indexOf('?') < 0);
     if(tr.length && Math.random() < 0.3) return Object.assign({}, pick(tr), { level: Math.floor(skills()[real] || 1), retry: true });
@@ -456,6 +479,7 @@ window.MBA = (function(){
     get task(){ return task; }, get current(){ return current; },
     get profiles(){ return profiles.slice(); }, profile, band, BAND_NAMES, setProfile, addProfile, updateProfile, removeProfile, PROFILE_KEYS,
     skills, skillsFor, peek, trickyFor, nextProblem, record,
+    voiceInfo, setVoice, onVoices(f){ voiceWatchers.push(f); },
     OPS, LEVEL_NAMES, fact, makeProblem, choices, hint, confetti, toast, PRAISE, start, modes: {}
   };
 })();

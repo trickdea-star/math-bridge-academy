@@ -58,7 +58,12 @@
   /* =========================================================
      The Math Bridge
      ========================================================= */
-  const B = { op: 'add', startLevel: 'auto', level: 1, auto: true, n: 5, step: 0, misses: 0, cracks: [], prob: null, busy: true, pos: null };
+  // B.ops is any mix the kids pick (Adding + Subtracting, say); B.op is its name for records and courses.
+  const ALL_OPS = ['add', 'sub', 'mul', 'div'];
+  const opsKey = ops => ops.length === 4 ? 'mix' : ops.join('+');
+  const opsName = ops => ops.length === 4 ? 'All four mixed' : ops.map(o => OPS[o].name).join(' + ');
+  function setOps(ops){ B.ops = ALL_OPS.filter(o => ops.indexOf(o) >= 0); if(!B.ops.length) B.ops = ['add']; B.op = opsKey(B.ops); }
+  const B = { op: 'add', ops: ['add'], startLevel: 'auto', level: 1, auto: true, n: 5, step: 0, misses: 0, cracks: [], prob: null, busy: true, pos: null };
   const be = {}, bt = timerBag();
   const mathLevel = lv => lv <= 3 ? 1 : lv <= 6 ? 2 : lv <= 9 ? 3 : 4;
   const plankCount = lv => Math.min(4 + lv, 10);
@@ -68,10 +73,12 @@
   function bridgeSetup(){
     bt.clear(); hush();
     be.setup.hidden = false; be.game.hidden = true;
-    be.ops.innerHTML = ['add', 'sub', 'mul', 'div', 'mix'].map(op => `<button class="chip op-${op}" data-op="${op}" aria-pressed="${B.op === op}"><span class="sym">${OPS[op].sym}</span>${OPS[op].name}</button>`).join('');
+    be.ops.innerHTML = ALL_OPS.map(op => `<button class="chip op-${op}" data-op="${op}" aria-pressed="${B.ops.indexOf(op) >= 0}"><span class="sym">${OPS[op].sym}</span>${OPS[op].name}</button>`).join('')
+      + `<button class="chip op-mix" data-op="all" aria-pressed="${B.ops.length === 4}"><span class="sym">${OPS.mix.sym}</span>All four</button>`;
+    be.mix.textContent = B.ops.length === 4 ? 'Mixing all four.' : B.ops.length > 1 ? `Mixing ${opsName(B.ops).toLowerCase()}.` : 'Tap more than one to mix them.';
     be.start.innerHTML = START.map(s => `<button class="chip t-level" data-start="${s.level}" aria-pressed="${B.startLevel === s.level}">${s.name} <small>${s.note}</small></button>`).join('');
     const best = store.get('bridgeBest', {});
-    be.best.textContent = best[B.op] ? `Your best with ${OPS[B.op].name.toLowerCase()}: Bridge ${best[B.op]}.` : 'Cross a bridge to set your first record.';
+    be.best.textContent = best[B.op] ? `Your best with ${opsName(B.ops).toLowerCase()}: Bridge ${best[B.op]}.` : 'Cross a bridge to set your first record.';
     if(!be.preview.firstChild) drawStatic(be.preview, 5, 'p', -1);
   }
   function startBridge(level, auto){
@@ -83,7 +90,7 @@
     be.pip = be.svg.querySelector('#gpip');
     be.setup.hidden = true; be.game.hidden = false;
     be.title.textContent = 'Bridge ' + level;
-    be.sub.textContent = `${OPS[B.op].name} \u00b7 ${B.auto ? 'Just right for ' + (App.profile().guest ? 'you' : App.profile().name) : LEVEL_NAMES[mathLevel(level)]} \u00b7 ${B.n} steps`;
+    be.sub.textContent = `${opsName(B.ops)} \u00b7 ${B.auto ? 'Just right for ' + (App.profile().guest ? 'you' : App.profile().name) : LEVEL_NAMES[mathLevel(level)]} \u00b7 ${B.n} steps`;
     paintHearts(); markAhead();
     nextQuestion();
     window.scrollTo(0, 0);
@@ -100,7 +107,7 @@
     be.hearts.setAttribute('aria-label', left + (left === 1 ? ' heart' : ' hearts') + ' left');
   }
   function nextQuestion(){
-    B.prob = App.nextProblem(B.op, B.auto ? 'auto' : mathLevel(B.level));
+    B.prob = App.nextProblem(B.ops.length > 1 ? B.ops : B.ops[0], B.auto ? 'auto' : mathLevel(B.level));
     be.panel.innerHTML = `<div class="steps-left">Step ${B.step + 1} of ${B.n}</div><div class="question">${B.prob.text} = <span class="qmark">?</span></div>`
       + `<div class="answers">${choices(B.prob).map((v, i) => `<button class="btn ans" data-v="${v}"><small>${i + 1}</small>${v}</button>`).join('')}</div><div class="feedback" id="bFb" aria-live="polite"></div>`;
     B.busy = false;
@@ -180,7 +187,7 @@
     say(`You crossed bridge ${B.level}!`);
   }
   function bridgeInit(){
-    ['bridgeSetup:setup', 'bridgeGame:game', 'bOps:ops', 'bStart:start', 'bGo:go', 'bBest:best', 'bPreview:preview', 'bQuit:quit', 'bTitle:title', 'bSub:sub', 'bHearts:hearts', 'bSvg:svg', 'bPanel:panel', 'bRules:rules']
+    ['bridgeSetup:setup', 'bridgeGame:game', 'bOps:ops', 'bStart:start', 'bGo:go', 'bBest:best', 'bPreview:preview', 'bQuit:quit', 'bTitle:title', 'bSub:sub', 'bHearts:hearts', 'bSvg:svg', 'bPanel:panel', 'bRules:rules', 'bMix:mix']
       .forEach(pair => { const [id, key] = pair.split(':'); be[key] = $('#' + id); });
     be.rules.innerHTML = [
       [ICON.check, 'Each right answer moves Pip one step.'],
@@ -188,7 +195,14 @@
       [ICON.bridge, 'Lose all 3 hearts and the bridge breaks. Splash!'],
       [ICON.star, 'Reach the flag to earn up to 3 stars.']
     ].map(([ic, t]) => `<li>${ic}<span>${t}</span></li>`).join('');
-    be.ops.addEventListener('click', e => { const b = e.target.closest('[data-op]'); if(b){ B.op = b.dataset.op; sfx.tap(); bridgeSetup(); } });
+    be.ops.addEventListener('click', e => {
+      const b = e.target.closest('[data-op]'); if(!b) return;
+      const op = b.dataset.op;
+      if(op === 'all') setOps(B.ops.length === 4 ? ['add'] : ALL_OPS);
+      else if(B.ops.indexOf(op) >= 0){ if(B.ops.length > 1) setOps(B.ops.filter(o => o !== op)); }
+      else setOps(B.ops.concat(op));
+      sfx.tap(); bridgeSetup();
+    });
     be.start.addEventListener('click', e => { const b = e.target.closest('[data-start]'); if(b){ const v = b.dataset.start; B.startLevel = v === 'auto' ? 'auto' : Number(v); sfx.tap(); bridgeSetup(); } });
     be.go.addEventListener('click', () => { sfx.tap(); const auto = B.startLevel === 'auto'; startBridge(auto ? 1 : B.startLevel, auto); });
     be.quit.addEventListener('click', bridgeSetup);
@@ -202,7 +216,7 @@
       else if(act === 'setup') bridgeSetup();
     });
     App.on('bridge', { enter: bridgeSetup, leave(){ bt.clear(); hush(); } });
-    App.modes.bridge = { start(op, level){ B.op = op; B.startLevel = level || 1; startBridge(B.startLevel, false); } };
+    App.modes.bridge = { start(op, level){ setOps(op === 'mix' ? ALL_OPS : [op]); B.startLevel = level || 1; startBridge(B.startLevel, false); } };
   }
 
   /* =========================================================
@@ -542,7 +556,24 @@
       <div class="row start">${cur ? '' : `<button class="btn primary" data-g="play" data-id="${p.id}">Play as ${p.name}</button>`}<button class="btn small" data-g="edit" data-id="${p.id}">Edit name or age</button><button class="btn small${removing === p.id ? ' danger' : ''}" data-g="remove" data-id="${p.id}">${removing === p.id ? `Tap again to remove ${p.name}` : 'Remove'}</button></div>
     </article>`;
   }
+  // The narrator voice is a setting for this device, shared by every player on it.
+  function renderVoice(){
+    const box = $('#gVoice'); if(!box) return;
+    const vi = App.voiceInfo();
+    const opts = vi.list.map(v => `<option value="${v.name.replace(/"/g, '&quot;')}"${v.name === vi.chosen ? ' selected' : ''}>${v.name}${v.natural ? ' \u2605' : ''}</option>`).join('');
+    box.innerHTML = `<h3>Narrator voice</h3>`
+      + `<p class="muted">The app uses the most natural-sounding voice this device has${vi.current ? ` (right now: <b>${vi.current}</b>)` : ''}. Voices marked \u2605 usually sound the most human. This setting is for this device only.</p>`
+      + (vi.list.length
+        ? `<div class="voice-row"><label class="field">Voice<select id="gVoiceSel"><option value="">Best available</option>${opts}</select></label><button class="btn primary" data-v="try">Try it</button></div>`
+        : '<p class="muted">This browser has no voices to choose from.</p>')
+      + `<details class="voice-help"><summary>Get a more natural voice for free</summary><ul>`
+      + `<li><b>iPhone or iPad:</b> open Settings, then Accessibility, then Spoken Content, then Voices, then English. Download <b>Ava (Premium)</b> or <b>Zoe (Premium)</b>. Close and reopen the app, then pick that voice here.</li>`
+      + `<li><b>Android:</b> in Settings, search for <b>Text-to-speech</b>. Set the engine to Speech Services by Google, install the English (US) voice data, and choose a voice you like.</li>`
+      + `<li><b>Windows PC:</b> open the site in <b>Microsoft Edge</b> for its very natural voices: Aria, Jenny, and Ana (a child\u2019s voice).</li>`
+      + `</ul></details>`;
+  }
   function renderGrownups(){
+    renderVoice();
     const list = App.profiles;
     $('#gPlayers').innerHTML = list.map(playerCard).join('') || '<p class="muted">No players yet. Add one below so the app can match each child\u2019s age.</p>';
     $('#gAddAges').innerHTML = ageChips('new', newAge);
@@ -550,6 +581,11 @@
   function grownupsInit(){
     const root = $('#view-grownups');
     root.addEventListener('click', e => {
+      if(e.target.closest('[data-v="try"]')){
+        if(!App.canSpeak()){ App.toast('Turn the sound and narrator on at the top first'); return; }
+        App.say('Hi! I will read the math to you. Let\u2019s count: one, two, three!');
+        return;
+      }
       const ag = e.target.closest('[data-age]');
       if(ag){
         const a = Number(ag.dataset.age);
@@ -581,6 +617,12 @@
       App.toast(`Added ${name}. Now playing as ${name}.`);
       renderGrownups();
     });
+    root.addEventListener('change', e => {
+      if(e.target.id !== 'gVoiceSel') return;
+      App.setVoice(e.target.value);
+      App.say('Hi! I will read the math to you. Let\u2019s count: one, two, three!');
+    });
+    App.onVoices(() => { if(App.current === 'grownups') renderVoice(); });
     App.on('grownups', { enter(){ editing = null; removing = null; renderGrownups(); } });
   }
 

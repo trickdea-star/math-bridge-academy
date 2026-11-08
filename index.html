@@ -483,6 +483,12 @@ p{margin:0}
 .trick{display:flex;flex-wrap:wrap;gap:8px}
 .trick span{font-family:var(--font-display);font-weight:700;padding:2px 12px;border-radius:12px;border:2px solid var(--line);background:var(--berry-soft)}
 .add-player{margin-top:22px;max-width:560px}
+.voice-panel{margin-top:22px;max-width:760px}
+.voice-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+.voice-row .field{flex:1 1 260px;min-width:0}
+.field select{width:100%;font-family:var(--font-body);font-size:1.05rem;padding:10px 12px;border-radius:14px;border:var(--bw) solid var(--line);background:var(--paper);color:var(--fg)}
+.voice-help summary{cursor:pointer;font-family:var(--font-display);font-weight:700}
+.voice-help ul{margin:10px 0 0;padding-left:20px;display:grid;gap:8px;max-width:70ch}
 .lcard{position:relative}
 .agetag{position:absolute;top:10px;left:10px;font-family:var(--font-display);font-weight:700;font-size:.85rem;padding:3px 10px;border-radius:999px;background:var(--grape);color:var(--on-color);border:2px solid var(--line)}
 .foot a{color:var(--fg);font-weight:700}
@@ -754,8 +760,9 @@ p{margin:0}
             <ul class="rules" id="bRules"></ul>
           </div>
           <div class="panel">
-            <h3>Pick your math</h3>
+            <h3>Pick your math <small class="muted">(one or more)</small></h3>
             <div class="chips" id="bOps"></div>
+            <p class="best" id="bMix"></p>
             <h3>Where do you want to start?</h3>
             <div class="chips" id="bStart"></div>
             <button class="btn primary big" id="bGo">Start crossing</button>
@@ -867,6 +874,7 @@ p{margin:0}
         <div class="field">Age<div id="gAddAges"></div></div>
         <button class="btn primary" type="submit">Add player</button>
       </form>
+      <section class="panel voice-panel" id="gVoice" aria-label="Narrator voice"></section>
     </div>
   </section>
 </main>
@@ -895,10 +903,10 @@ p{margin:0}
   window.addEventListener('unhandledrejection', function(e){ show('promise: ' + (e.reason && (e.reason.message || e.reason))); });
 })();
 </script>
-<script src="app.js?v=d0b8637f85"></script>
-<script src="lessons.js?v=d0b8637f85"></script>
-<script src="little.js?v=d0b8637f85"></script>
-<script src="games.js?v=d0b8637f85"></script>
+<script src="app.js?v=dba1840088"></script>
+<script src="lessons.js?v=dba1840088"></script>
+<script src="little.js?v=dba1840088"></script>
+<script src="games.js?v=dba1840088"></script>
 
 <script>if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });}</script>
 </body>
