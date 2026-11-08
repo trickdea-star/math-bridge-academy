@@ -162,6 +162,12 @@ p{margin:0}
 .tile svg{width:96px;height:72px}
 .tile h3{font-size:1.4rem}
 .tile p{color:var(--muted);font-size:.98rem;line-height:1.35;margin-top:2px}
+.tile.wide{grid-column:1/-1}
+.t-little{--c:var(--berry);--c-soft:var(--sun-soft)}
+.lt-a1,.lt-a2,.lt-a3{stroke:var(--line);stroke-width:3}
+.lt-a1{fill:var(--berry)}
+.lt-a2{fill:var(--sun)}
+.lt-a3{fill:var(--sky)}
 .tile.soon{border-style:dashed;box-shadow:none}
 .tile.soon:hover{transform:none}
 .a-paper{fill:var(--paper);stroke:var(--line);stroke-width:3;stroke-linejoin:round}
@@ -484,6 +490,77 @@ p{margin:0}
 .boot-note{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:70;width:min(560px,calc(100% - 32px));padding:10px 16px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--fg);font-size:.95rem;font-weight:700;text-align:center}
 .boot-note.err{background:var(--berry-soft);cursor:pointer}
 
+/* little learners (ages 2-4): everything big enough for small fingers */
+.lt-numbers{--c:var(--grass);--c-soft:var(--grass-soft)}
+.lt-colors{--c:var(--berry);--c-soft:var(--berry-soft)}
+.lt-letters{--c:var(--sky);--c-soft:var(--sky-soft)}
+.lt-sound{margin:16px 0 0;padding:12px 16px;border-radius:16px;border:var(--bw) solid var(--line);background:var(--sun-soft);font-weight:700;text-align:center}
+.lt-topics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+@media (max-width:760px){.lt-topics{grid-template-columns:minmax(0,1fr)}}
+.lt-topic{display:grid;gap:12px}
+.lt-topic-play{display:grid;justify-items:center;gap:8px;padding:26px 16px 22px;border:var(--bw) solid var(--line);border-radius:30px;box-shadow:0 7px 0 var(--line);background:var(--c-soft);color:var(--fg);font:inherit;text-align:center;cursor:pointer;touch-action:manipulation;transition:transform .12s}
+.lt-topic-play:active{transform:translateY(5px);box-shadow:0 2px 0 var(--line)}
+.lt-topic-play b{font-family:var(--font-display);font-size:2.4rem;line-height:1}
+.lt-topic-play small{color:var(--muted);font-size:1.05rem}
+.lt-art{display:flex;gap:10px;align-items:center;font-family:var(--font-display);font-weight:800;font-size:3.6rem;line-height:1.1;color:var(--c)}
+.lt-art i{display:block;width:52px;height:52px;border-radius:50%;border:var(--bw) solid var(--line)}
+.lt-explore-btn{justify-self:center}
+.lt-note{margin-top:22px;max-width:70ch}
+.lt-bar{display:flex;align-items:center;gap:12px;padding-block:16px 6px}
+.lt-dots{display:flex;gap:10px;margin-inline:auto}
+.lt-dots i{display:block;width:24px;height:24px;border-radius:50%;border:var(--bw) solid var(--line);background:var(--paper)}
+.lt-dots i.got{background:var(--sun)}
+.lt-dots i.now{background:var(--c,var(--sky))}
+.lt-prompt{display:grid;place-items:center;min-height:130px;text-align:center}
+.lt-ask{display:grid;justify-items:center;gap:8px}
+.lt-ask b{font-family:var(--font-display);font-weight:800;font-size:clamp(2rem,7vw,3.2rem);line-height:1.08;text-wrap:balance}
+.lt-ask small{font-size:1.15rem;color:var(--muted)}
+.lt-swatch{display:block;width:96px;height:96px;border-radius:50%;border:4px solid var(--line)}
+.lt-big{font-family:var(--font-display);font-weight:800;font-size:clamp(5rem,20vw,8rem);line-height:1}
+.lt-big small{font-size:.5em;color:var(--muted);margin-left:.15em}
+.lt-choices{display:grid;gap:16px;margin-top:18px}
+.lt-choices.n2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.lt-choices.n3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.lt-choices.n4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:600px){.lt-choices.n4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lt-choice{display:grid;place-items:center;align-content:center;gap:8px;min-height:150px;padding:12px;border:var(--bw) solid var(--line);border-radius:30px;background:var(--paper);box-shadow:0 6px 0 var(--line);color:var(--fg);font:inherit;cursor:pointer;touch-action:manipulation}
+.lt-choice:active{transform:translateY(4px);box-shadow:0 2px 0 var(--line)}
+.balloons .lt-choice{background:var(--sky-soft)}
+.lt-choice.yay{background:var(--grass-soft);animation:ltyay .6s}
+.lt-choice.nope{animation:ltnope .45s}
+.lt-choice.glow{box-shadow:0 0 0 7px var(--sun),0 6px 0 var(--line)}
+.lt-balloon{width:min(120px,100%);height:auto;max-height:170px}
+.lt-bal{stroke:var(--line);stroke-width:4;stroke-linejoin:round}
+.lt-string{fill:none;stroke:var(--line);stroke-width:3;stroke-linecap:round}
+.lt-shine{fill:#FFFFFF;opacity:.45}
+.lt-num{font-family:var(--font-display);font-weight:800;font-size:clamp(3.6rem,14vw,5.6rem);line-height:1}
+.lt-pips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:120px}
+.lt-pips i{display:block;width:16px;height:16px;border-radius:50%;border:2px solid var(--line);background:var(--c,var(--sky))}
+.lt-letter{font-family:var(--font-display);font-weight:800;font-size:clamp(4rem,16vw,6.2rem);line-height:1}
+.lt-tray{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-top:6px}
+.lt-thing{position:relative;display:grid;place-items:center;width:92px;height:92px;padding:0;border:var(--bw) solid var(--line);border-radius:26px;background:var(--paper);box-shadow:0 5px 0 var(--line);cursor:pointer;touch-action:manipulation;transition:transform .12s}
+.lt-thing.done{background:var(--sun-soft);transform:scale(.94)}
+.lt-emoji{font-size:3.1rem;line-height:1}
+.lt-badge{position:absolute;top:-12px;right:-12px;display:none;place-items:center;min-width:38px;height:38px;padding:0 6px;border-radius:19px;background:var(--grass);color:var(--on-color);border:3px solid var(--line);font-family:var(--font-display);font-size:1.35rem;line-height:1}
+.lt-thing.done .lt-badge{display:grid}
+.lt-reward{display:grid;justify-items:center;gap:6px;margin-top:8px;animation:pop .4s both}
+.lt-pic{font-size:5rem;line-height:1.1}
+.lt-reward b,.lt-show b{font-family:var(--font-display);font-size:2rem;line-height:1.1}
+.lt-showwrap{position:sticky;top:0;z-index:5;background:var(--bg);padding-block:4px}
+.lt-show,.lt-show-hint{display:grid;justify-items:center;align-content:center;gap:6px;min-height:210px;text-align:center}
+.lt-show-hint{font-family:var(--font-display);font-weight:700;font-size:2rem;color:var(--muted)}
+.lt-row{font-size:2.2rem;line-height:1.25;max-width:360px}
+.lt-show .lt-balloon{width:110px}
+.lt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:12px;margin-top:10px}
+.lt-cell{display:grid;place-items:center;align-content:center;min-height:86px;padding:6px;border:var(--bw) solid var(--line);border-radius:22px;background:var(--paper);box-shadow:0 4px 0 var(--line);color:var(--fg);font:inherit;cursor:pointer;touch-action:manipulation}
+.lt-cell b{font-family:var(--font-display);font-weight:800;font-size:2.4rem;line-height:1}
+.lt-cell small{font-size:1.05rem;color:var(--muted)}
+.lt-cell.tapped{animation:ltyay .5s}
+.lt-blob{display:block;width:58px;height:58px;border-radius:50%;border:3px solid var(--line)}
+.lt-trophy svg{display:block;width:110px;height:110px}
+@keyframes ltyay{0%{transform:scale(1)}40%{transform:scale(1.1) rotate(-3deg)}100%{transform:scale(1)}}
+@keyframes ltnope{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+
 /* effects */
 #fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
 .cf{position:absolute;top:-16px;width:10px;height:14px;border-radius:3px;animation:cf var(--d,2s) cubic-bezier(.3,.6,.6,1) forwards}
@@ -532,6 +609,7 @@ p{margin:0}
     </a>
     <nav class="nav" aria-label="Main">
       <a href="#home" data-view="home">Home</a>
+      <a href="#little" data-view="little">Little Ones</a>
       <a href="#learn" data-view="learn">Videos</a>
       <a href="#bridge" data-view="bridge">Math Bridge</a>
       <a href="#cards" data-view="cards">Flash Cards</a>
@@ -567,6 +645,10 @@ p{margin:0}
       <div id="homeForYou"></div>
 
       <div class="tiles">
+        <a class="tile t-little wide" href="#little">
+          <svg viewBox="0 0 120 90" aria-hidden="true"><path class="a-ink" d="M33 58 Q29 72 35 88M60 50 Q56 70 62 88M87 58 Q83 72 89 88" style="fill:none;stroke:var(--muted);stroke-width:2.5"/><ellipse class="lt-a1" cx="33" cy="36" rx="18" ry="21"/><ellipse class="lt-a2" cx="60" cy="28" rx="18" ry="21"/><ellipse class="lt-a3" cx="87" cy="36" rx="18" ry="21"/></svg>
+          <span><h3>Little Learners &middot; ages 2&ndash;4</h3><p>Numbers, colors and the ABCs, with big buttons and a friendly voice. No reading needed.</p></span>
+        </a>
         <a class="tile t-learn" href="#learn">
           <svg viewBox="0 0 120 90" aria-hidden="true"><rect class="a-paper" x="8" y="8" width="104" height="62" rx="12"/><path class="a-fill" d="M50 22v30l26-15z"/><rect class="a-ink" x="40" y="77" width="40" height="7" rx="3.5"/></svg>
           <span><h3>Watch &amp; Learn</h3><p>Short videos with easy tricks for doing math in your head.</p></span>
@@ -592,6 +674,37 @@ p{margin:0}
           <span><h3>Science</h3><p>Coming next: plants, magnets, weather and more.</p></span>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- LITTLE LEARNERS (ages 2-4) -->
+  <section id="view-little" class="view" hidden>
+    <div class="wrap">
+      <p class="lt-sound" id="ltSound" hidden>These games talk! Turn the sound on with the speaker button at the top.</p>
+      <div id="ltPick">
+        <div class="view-head">
+          <div><p class="eyebrow">Ages 2 to 4</p><h2>Little Learners</h2></div>
+          <p class="lede" id="ltHello">Pick a game. The voice tells you what to do.</p>
+        </div>
+        <div class="lt-topics" id="ltTopics"></div>
+        <p class="muted small lt-note">For grown-ups: there&rsquo;s no losing here. A wrong tap wiggles and says &ldquo;Try again,&rdquo; and after two misses the right answer glows. Age 2 starts with 2 choices, age 3 with 3, age 4 with 4, and a perfect game makes the next one a little harder.</p>
+      </div>
+      <div id="ltGame" hidden>
+        <div class="lt-bar">
+          <button class="btn small" data-lt-back>&larr; Games</button>
+          <div class="lt-dots" id="ltDots" role="img"></div>
+          <button class="pbtn" id="ltHear" aria-label="Hear it again"></button>
+        </div>
+        <div class="lt-prompt" id="ltPrompt" aria-live="polite"></div>
+        <div class="lt-play" id="ltPlay"></div>
+        <div class="lt-choices" id="ltChoices"></div>
+      </div>
+      <div id="ltExplore" hidden>
+        <div class="lt-bar"><button class="btn small" data-lt-back>&larr; Games</button></div>
+        <div class="lt-showwrap" id="ltShow" aria-live="polite"></div>
+        <div class="lt-grid" id="ltGrid"></div>
+      </div>
+      <div id="ltDone" hidden></div>
     </div>
   </section>
 
@@ -782,9 +895,10 @@ p{margin:0}
   window.addEventListener('unhandledrejection', function(e){ show('promise: ' + (e.reason && (e.reason.message || e.reason))); });
 })();
 </script>
-<script src="app.js?v=0ea4fe8635"></script>
-<script src="lessons.js?v=0ea4fe8635"></script>
-<script src="games.js?v=0ea4fe8635"></script>
+<script src="app.js?v=d0b8637f85"></script>
+<script src="lessons.js?v=d0b8637f85"></script>
+<script src="little.js?v=d0b8637f85"></script>
+<script src="games.js?v=d0b8637f85"></script>
 
 <script>if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });}</script>
 </body>

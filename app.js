@@ -37,7 +37,7 @@ window.MBA = (function(){
     remove(k){ try{ localStorage.removeItem('mba:' + k); }catch(e){} }
   };
   // Progress belongs to the player who is playing; settings belong to the device.
-  const PROFILE_KEYS = ['stars', 'done', 'lessonsDone', 'decksDone', 'bridgeBest', 'quizBest', 'skill', 'tricky', 'stats'];
+  const PROFILE_KEYS = ['stars', 'done', 'lessonsDone', 'decksDone', 'bridgeBest', 'quizBest', 'skill', 'tricky', 'stats', 'little'];
   let profiles = raw.get('profiles', []), currentId = raw.get('currentProfile', null);
   if(!profiles.some(p => p.id === currentId)) currentId = profiles.length ? profiles[0].id : 'guest';
   PROFILE_KEYS.forEach(k => { const old = raw.get(k, null); if(old != null){ if(raw.get('p:guest:' + k, null) == null) raw.set('p:guest:' + k, old); raw.remove(k); } });
@@ -53,8 +53,8 @@ window.MBA = (function(){
   /* ---------- players (each kid has a name, an age and their own progress) ---------- */
   const GUEST = { id: 'guest', name: 'Guest', age: 7, guest: true };
   const profile = () => profiles.find(p => p.id === currentId) || GUEST;
-  const band = age => (age || 7) <= 6 ? 'young' : age === 7 ? 'mid' : 'older';
-  const BAND_NAMES = { young: 'Ages 5\u20136', mid: 'Age 7', older: 'Ages 8\u20139' };
+  const band = age => (age || 7) <= 4 ? 'little' : age <= 6 ? 'young' : age === 7 ? 'mid' : 'older';
+  const BAND_NAMES = { little: 'Ages 2\u20134', young: 'Ages 5\u20136', mid: 'Age 7', older: 'Ages 8\u20139' };
   function setProfile(id){
     currentId = id; raw.set('currentProfile', id);
     stars = Number(store.get('stars', 0)) || 0;
@@ -141,7 +141,11 @@ window.MBA = (function(){
     fall(){ if(settings.sound) tone(900, 0, .9, 'sine', .12, 120); },
     splash(){ if(settings.sound) noise(0, .7, .5); },
     win(){ if(settings.sound) [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .12, .3, 'triangle', .15)); },
-    tap(){ if(settings.sound) tone(700, 0, .04, 'sine', .06); }
+    tap(){ if(settings.sound) tone(700, 0, .04, 'sine', .06); },
+    // Gentle sounds for the little ones: no buzzers.
+    oops(){ if(settings.sound){ tone(392, 0, .12, 'triangle', .08); tone(330, .1, .2, 'triangle', .08); } },
+    pop(){ if(settings.sound){ noise(0, .1, .18); tone(660, 0, .1, 'sine', .1, 1200); } },
+    count(n){ if(settings.sound) tone(392 * Math.pow(2, Math.min(n - 1, 12) / 12 * 2), 0, .16, 'triangle', .13); }
   };
 
   /* ---------- read-aloud (browser speech) ---------- */
@@ -186,7 +190,7 @@ window.MBA = (function(){
   }
 
   /* ---------- routing (#home, #learn, #bridge, #cards, #quiz, #courses) ---------- */
-  const VIEWS = ['home', 'learn', 'bridge', 'cards', 'quiz', 'courses', 'grownups'];
+  const VIEWS = ['home', 'little', 'learn', 'bridge', 'cards', 'quiz', 'courses', 'grownups'];
   const hooks = {};
   let current = null, pending = null, task = null;
   function on(name, h){ hooks[name] = h; }
@@ -261,6 +265,7 @@ window.MBA = (function(){
 
   /* ---------- the app learns each kid: a skill level per operation, plus the facts they miss ---------- */
   const START_SKILL = {
+    2: { add: 1.0, sub: 1.0, mul: 1.0, div: 1.0 }, 3: { add: 1.0, sub: 1.0, mul: 1.0, div: 1.0 }, 4: { add: 1.0, sub: 1.0, mul: 1.0, div: 1.0 },
     5: { add: 1.0, sub: 1.0, mul: 1.0, div: 1.0 }, 6: { add: 1.4, sub: 1.2, mul: 1.0, div: 1.0 },
     7: { add: 2.0, sub: 1.8, mul: 1.3, div: 1.1 }, 8: { add: 2.9, sub: 2.7, mul: 2.2, div: 1.9 },
     9: { add: 3.4, sub: 3.2, mul: 2.8, div: 2.5 }

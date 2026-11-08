@@ -411,7 +411,18 @@
   const Cs = (id, label) => ({ kind: 'cards', id, label });
   const Qz = (op, level) => ({ kind: 'quiz', id: op + '-' + level, op, level, label: `${OPS[op].name}, ${LEVEL_NAMES[level]} (get 7 right)` });
   const Br = (op, level) => ({ kind: 'bridge', id: op, op, level, label: `Cross the Math Bridge from Bridge ${level}` });
+  const Lt = (topic, mode, label) => ({ kind: 'little', id: topic + '-' + mode, topic, mode, label });
   const COURSE_SETS = {
+    little: [
+      { op: 'add', sym: '123', name: 'Counting Fun', blurb: 'Hear the numbers, then count things with Pip.', steps: [
+        Lt('numbers', 'explore', 'Tap and hear 1 to 10'), Lt('numbers', 'play', 'Count and find numbers'), Lt('numbers', 'play', 'Count again')] },
+      { op: 'mix', sym: '\u25cf', name: 'Color Party', blurb: 'Learn the colors, then pop the right balloon.', steps: [
+        Lt('colors', 'explore', 'Tap and hear the colors'), Lt('colors', 'play', 'Pop the right balloon'), Lt('colors', 'play', 'Pop more balloons')] },
+      { op: 'mul', sym: 'ABC', name: 'ABC Adventure', blurb: 'Meet every letter, then find the one you hear.', steps: [
+        Lt('letters', 'explore', 'Tap and hear A to Z'), Lt('letters', 'play', 'Find the letter'), Lt('letters', 'play', 'Find more letters')] },
+      { op: 'div', sym: '+', name: 'Ready for Adding', blurb: 'For 4-year-olds who love counting: a first adding trick.', steps: [
+        Ls('add-counton', 'Count on from the big number'), Cs('add-10', 'Adding to 10')] }
+    ],
     young: [
       { op: 'add', name: 'Addition Adventure', blurb: 'Count on, make 10 and use doubles, with numbers up to 10.', steps: [
         Ls('add-counton', 'Count on from the big number'), Ls('add-make10', 'Make 10 to add fast'), Cs('add-make10', 'Make 10 friends'), Cs('add-10', 'Adding to 10'),
@@ -448,7 +459,7 @@
         Ls('div-family', 'Use times tables to divide'), Cs('div-3', 'Divide by 3'), Cs('div-4', 'Divide by 4'), Qz('div', 2), Qz('div', 3), Br('div', 4)] }
     ]
   };
-  const KIND = { lesson: 'Watch', cards: 'Flash cards', quiz: 'Quiz', bridge: 'Game' };
+  const KIND = { lesson: 'Watch', cards: 'Flash cards', quiz: 'Quiz', bridge: 'Game', little: 'Play' };
   // Nine-year-olds walk the 8-9 paths with one level more in every quiz and a later starting bridge.
   function coursesFor(p){
     const b = App.band(p.age), up = p.age >= 9;
@@ -472,12 +483,12 @@
       const doneCount = c.steps.filter((s, i) => App.isDone(c.id, i)).length;
       const nextIdx = c.steps.findIndex((s, i) => !App.isDone(c.id, i));
       return `<article class="course op-${c.op}">
-        <header><span class="opbadge">${OPS[c.op].sym}</span><div><h3>${c.name}</h3><p>${c.blurb}</p></div>
+        <header><span class="opbadge">${c.sym || OPS[c.op].sym}</span><div><h3>${c.name}</h3><p>${c.blurb}</p></div>
           <div class="cprog"><span>${doneCount} of ${c.steps.length} steps</span><span class="pbar"><i style="width:${(doneCount / c.steps.length * 100).toFixed(0)}%"></i></span></div></header>
         <ol class="path">${c.steps.map((s, i) => {
           const done = App.isDone(c.id, i), isNext = i === nextIdx, locked = !done && !isNext;
           return `<li class="pstep${done ? ' done' : ''}${isNext ? ' next' : ''}${locked ? ' locked' : ''}"><button data-course="${c.id}" data-step="${i}"${locked ? ' disabled' : ''}>`
-            + `<span class="pico">${done ? ICON.check : locked ? ICON.lock : ICON[s.kind]}</span><span class="ptext"><small>${KIND[s.kind]}${done ? ' \u00b7 done' : isNext ? ' \u00b7 up next' : ''}</small><b>${s.label}</b></span></button></li>`;
+            + `<span class="pico">${done ? ICON.check : locked ? ICON.lock : (ICON[s.kind] || ICON.star)}</span><span class="ptext"><small>${KIND[s.kind]}${done ? ' \u00b7 done' : isNext ? ' \u00b7 up next' : ''}</small><b>${s.label}</b></span></button></li>`;
         }).join('')}</ol>
         ${nextIdx < 0 ? '<p class="cdone">Course complete. You are a math superstar!</p>' : ''}
       </article>`;
@@ -491,6 +502,7 @@
     else if(s.kind === 'cards') App.launch(task, 'cards', () => App.modes.cards.startDeck(s.id));
     else if(s.kind === 'quiz') App.launch(task, 'quiz', () => App.modes.quiz.start(s.op, s.level));
     else if(s.kind === 'bridge') App.launch(task, 'bridge', () => App.modes.bridge.start(s.op, s.level));
+    else if(s.kind === 'little') App.launch(task, 'little', () => App.modes.little.start(s.topic, s.mode));
   }
   function coursesInit(){
     $('#courseList').addEventListener('click', e => { const b = e.target.closest('[data-course]'); if(b && !b.disabled) launchStep(b.dataset.course, Number(b.dataset.step)); });
@@ -500,7 +512,16 @@
   /* =========================================================
      Grown-ups: players, ages, and what each child is learning
      ========================================================= */
-  const AGES = [5, 6, 7, 8, 9];
+  const AGES = [2, 3, 4, 5, 6, 7, 8, 9];
+  // Little Learners progress: level 1-3 per game (starts from age), and games played.
+  function littleSkills(p){
+    const s0 = App.modes.little ? App.modes.little.startLevel(p.age) : 1;
+    const lv = Object.assign({ numbers: s0, colors: s0, letters: s0, games: 0 }, App.peek(p.id, 'little', {}));
+    const words = ['', 'Just starting', 'Growing', 'Ready for more'];
+    return `<div class="skills">${[['numbers', '123', 'Numbers', 'op-add'], ['colors', '\u25cf', 'Colors', 'op-mix'], ['letters', 'ABC', 'Letters', 'op-mul']].map(([k, sym, name, cls]) =>
+      `<div class="sk ${cls}"><span class="sk-name"><b>${sym}</b> ${name}</span><span class="sk-bar"><i style="width:${Math.round(lv[k] / 3 * 100)}%"></i></span><span class="sk-lvl">${words[lv[k]]}</span></div>`).join('')}`
+      + `<p class="muted small">${lv.games} little game${lv.games === 1 ? '' : 's'} played. A perfect game moves a level up; a hard one moves it down.</p></div>`;
+  }
   const ageChips = (name, sel) => `<div class="chips" role="group" aria-label="Age">${AGES.map(a => `<button type="button" class="chip t-level" data-age-for="${name}" data-age="${a}" aria-pressed="${sel === a}">${a}</button>`).join('')}</div>`;
   const levelWord = r => r >= 4 ? 'Expert' : r >= 3 ? 'Hard' : r >= 2 ? 'Medium' : 'Easy';
   let editing = null, removing = null, removeTimer = null, newAge = 7;
@@ -514,7 +535,8 @@
     }
     return `<article class="panel player-card${cur ? ' current' : ''}">
       <div class="pc-head"><span class="pl-face big">${p.name.charAt(0).toUpperCase()}</span><div><h3>${p.name}</h3><p class="muted">Age ${p.age} \u00b7 ${App.BAND_NAMES[App.band(p.age)]} path \u00b7 ${stars} star${stars === 1 ? '' : 's'} \u00b7 ${doneCount} course steps done</p></div>${cur ? '<span class="now-tag">Playing now</span>' : ''}</div>
-      <div class="skills">${['add', 'sub', 'mul', 'div'].map(op => { const r = sk[op], o = st[op]; return `<div class="sk op-${op}"><span class="sk-name"><b>${OPS[op].sym}</b> ${OPS[op].name}</span><span class="sk-bar"><i style="width:${Math.round((r - 1) / 3.95 * 100)}%"></i></span><span class="sk-lvl">${levelWord(r)}${o && o.total ? ` \u00b7 ${Math.round(o.right / o.total * 100)}% right of ${o.total}` : ' \u00b7 not tried yet'}</span></div>`; }).join('')}</div>
+      ${App.band(p.age) === 'little' ? littleSkills(p) : ''}
+      <div class="skills"${App.band(p.age) === 'little' ? ' hidden' : ''}>${['add', 'sub', 'mul', 'div'].map(op => { const r = sk[op], o = st[op]; return `<div class="sk op-${op}"><span class="sk-name"><b>${OPS[op].sym}</b> ${OPS[op].name}</span><span class="sk-bar"><i style="width:${Math.round((r - 1) / 3.95 * 100)}%"></i></span><span class="sk-lvl">${levelWord(r)}${o && o.total ? ` \u00b7 ${Math.round(o.right / o.total * 100)}% right of ${o.total}` : ' \u00b7 not tried yet'}</span></div>`; }).join('')}</div>
       <p class="muted small">${trick.length ? 'Tricky facts the app keeps bringing back:' : 'No tricky facts yet. Facts that get missed show up here and come back in games until they stick.'}</p>
       ${trick.length ? `<div class="trick">${trick.map(t => `<span>${t}</span>`).join('')}</div>` : ''}
       <div class="row start">${cur ? '' : `<button class="btn primary" data-g="play" data-id="${p.id}">Play as ${p.name}</button>`}<button class="btn small" data-g="edit" data-id="${p.id}">Edit name or age</button><button class="btn small${removing === p.id ? ' danger' : ''}" data-g="remove" data-id="${p.id}">${removing === p.id ? `Tap again to remove ${p.name}` : 'Remove'}</button></div>
@@ -574,8 +596,13 @@
         + `<div class="field">Age${ageChips('home', homeAge)}</div><button class="btn primary big" type="submit">Let\u2019s go</button></form>`;
       return;
     }
+    if(App.band(p.age) === 'little'){
+      box.innerHTML = `<div class="panel for-you lt-home"><div><p class="eyebrow">Hi, ${p.name}! \u00b7 Age ${p.age}</p><h2>Let\u2019s play!</h2><p class="muted">Turn the sound on and pick a game. The voice tells you what to do.</p></div>`
+        + `<div class="row start">${[['numbers', '1 2 3'], ['colors', 'Colors'], ['letters', 'A B C']].map(([t, label]) => `<button class="btn primary big" data-lt-go="${t}">${label}</button>`).join('')}</div></div>`;
+      return;
+    }
     const n = nextStep(p), tricky = App.trickyFor(null).length;
-    box.innerHTML = `<div class="panel for-you"><div><p class="eyebrow">Hi, ${p.name}! \u00b7 Age ${p.age}</p><h2>${n ? 'Your next step' : 'Every course is done!'}</h2>`
+    box.innerHTML =`<div class="panel for-you"><div><p class="eyebrow">Hi, ${p.name}! \u00b7 Age ${p.age}</p><h2>${n ? 'Your next step' : 'Every course is done!'}</h2>`
       + `<p class="muted">${n ? `${n.c.name}: ${KIND[n.s.kind].toLowerCase()} \u201c${n.s.label}\u201d` : 'Play The Math Bridge on Just right to keep growing.'}</p></div>`
       + `<div class="row start">${n ? `<button class="btn primary big" data-h="next">Start</button>` : `<a class="btn primary big" href="#bridge">Play the bridge</a>`}`
       + `${tricky ? `<button class="btn big" data-h="tricky">Practice ${tricky} tricky fact${tricky > 1 ? 's' : ''}</button>` : ''}</div></div>`;
@@ -585,6 +612,8 @@
     box.addEventListener('click', e => {
       const ag = e.target.closest('[data-age]');
       if(ag){ homeAge = Number(ag.dataset.age); ag.parentElement.querySelectorAll('[data-age]').forEach(x => x.setAttribute('aria-pressed', String(x === ag))); sfx.tap(); return; }
+      const lt = e.target.closest('[data-lt-go]');
+      if(lt){ sfx.tap(); const t = lt.dataset.ltGo; App.go('little', () => App.modes.little.start(t, 'play')); return; }
       const b = e.target.closest('[data-h]'); if(!b) return;
       if(b.dataset.h === 'next'){ const n = nextStep(App.profile()); if(n) launchStep(n.c.id, n.i); }
       else if(b.dataset.h === 'tricky'){ App.go('cards', () => App.modes.cards.tricky('mix')); }
