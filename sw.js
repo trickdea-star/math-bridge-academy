@@ -1,6 +1,6 @@
 // Keeps Math Bridge Academy working offline. A new build changes VERSION, which refreshes the cache.
-const VERSION = 'mba-dba1840088';
-const CORE = ["./", "./index.html", "./app.js?v=dba1840088", "./lessons.js?v=dba1840088", "./little.js?v=dba1840088", "./games.js?v=dba1840088", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
+const VERSION = 'mba-a381acf5c9';
+const CORE = ["./", "./index.html", "./app.js?v=a381acf5c9", "./lessons.js?v=a381acf5c9", "./little.js?v=a381acf5c9", "./games.js?v=a381acf5c9", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));

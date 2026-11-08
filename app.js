@@ -186,14 +186,91 @@ window.MBA = (function(){
       .replace(/\+/g, ' plus ').replace(/=/g, ' equals ')
       .replace(/\s+/g, ' ').trim();
   }
-  const canSpeak = () => !!(synth && settings.voice && settings.sound);
+  /* ---------- the recorded natural voice: voice/index.json maps each sentence to an MP3 ---------- */
+  let REC = null;
+  const recMisses = new Set();
+  try{ fetch('voice/index.json?v=a381acf5c9').then(r => r.ok ? r.json() : null).then(j => { if(j && j.clips){ REC = j; voiceWatchers.forEach(f => { try{ f(); }catch(e){} }); } }).catch(() => {}); }catch(e){}
+  const recKey = s => s.toLowerCase().replace(/['\u2019]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const sentencesOf = s => (s.match(/[^.!?]+[.!?]*/g) || []).map(x => x.trim()).filter(Boolean);
+  function numParts(n){
+    n = Number(n);
+    if(!(n >= 0) || n >= 1000 || n !== Math.floor(n)) return [null];
+    if(n <= 100) return ['num:' + n];
+    const h = n - n % 100, r = n % 100;
+    return ['num:' + h].concat(r ? ['num:' + r] : []);
+  }
+  // "47 plus" and "25 equals what?" are recorded as phrases; above 100 the hundreds come first ("three hundred" + "47 plus").
+  function chunk(n, kind, word){
+    n = Number(n);
+    if(!(n >= 0) || n >= 1000 || n !== Math.floor(n)) return [null];
+    const id = r => kind === 'pre' ? 'pre:' + r + ' ' + word : 'post:' + r + ' ' + word;
+    if(n <= 100) return [id(n)];
+    const h = n - n % 100, r = n % 100;
+    return ['num:' + h, r ? id(r) : (kind === 'pre' ? 'op:' + word : word === 'what' ? 'op:equals what' : 'op:equals')];
+  }
+  // A plan is the list of clips to play, with a short pause after each sentence. null = something isn't recorded.
+  function recPlan(spoken){
+    if(!REC || settings.natural === false) return null;
+    const plan = [];
+    for(const s of sentencesOf(spoken)){
+      const f = REC.clips[recKey(s)];
+      if(f){ plan.push({ f, gap: 0.28 }); continue; }
+      const m = s.match(/^(\d+) (plus|minus|times|divided by) (\d+) equals (what\?|\d+)[.!]?$/i);
+      if(m){
+        const op = m[2].toLowerCase(), ask = /^what/i.test(m[4]);
+        const ids = [].concat(chunk(m[1], 'pre', op), ask ? chunk(m[3], 'post', 'what') : chunk(m[3], 'post', 'eq').concat(numParts(m[4])));
+        const fs = ids.map(id => id && REC.parts[id]);
+        if(fs.every(Boolean)){ fs.forEach((x, i) => plan.push({ f: x, gap: i === fs.length - 1 ? 0.28 : 0.07 })); continue; }
+      }
+      recMisses.add(s);
+      return null;
+    }
+    return plan.length ? plan : null;
+  }
+  const bufs = new Map();
+  function loadClip(f){
+    if(!bufs.has(f)){
+      const c = ac();
+      bufs.set(f, fetch('voice/' + f).then(r => { if(!r.ok) throw new Error('clip ' + r.status); return r.arrayBuffer(); })
+        .then(b => new Promise((res, rej) => c.decodeAudioData(b, res, rej))));
+      bufs.get(f).catch(() => bufs.delete(f));
+    }
+    return bufs.get(f);
+  }
+  let recToken = 0, recSources = [];
+  function stopRec(){ recToken++; recSources.forEach(s => { try{ s.stop(); }catch(e){} }); recSources = []; }
+  function playRec(plan, spoken, onend){
+    const c = ac(); if(!c) return false;
+    const my = ++recToken;
+    Promise.all(plan.map(p => loadClip(p.f))).then(list => {
+      if(my !== recToken) return;
+      let t = c.currentTime + 0.04;
+      list.forEach((b, i) => {
+        const s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(t);
+        recSources.push(s);
+        t += b.duration + plan[i].gap;
+      });
+      if(onend) setTimeout(() => { if(my === recToken) onend(); }, Math.max(0, (t - c.currentTime) * 1000));
+    }).catch(() => { if(my === recToken) speakDevice(spoken, onend); });  // a clip didn't load: use the device voice
+    return true;
+  }
+  const hasRec = () => !!REC;
+  const canSpeak = () => !!((synth || REC) && settings.voice && settings.sound);
   function say(text, onend){
     if(!canSpeak()) return false;
+    const spoken = speakable(text);
+    const plan = recPlan(spoken);
+    if(plan){ clearTimeout(speakTimer); if(synth){ try{ synth.cancel(); }catch(e){} } stopRec(); return playRec(plan, spoken, onend); }
+    stopRec();
+    return speakDevice(spoken, onend);
+  }
+  function speakDevice(spoken, onend){
+    if(!synth) return false;
     try{
       clearTimeout(speakTimer);
       const busy = synth.speaking || synth.pending;
       synth.cancel();
-      const u = new SpeechSynthesisUtterance(speakable(text));
+      const u = new SpeechSynthesisUtterance(spoken);
       if(voice) u.voice = voice;
       u.lang = (voice && voice.lang) || 'en-US';
       // Natural voices sound best at their own pitch; a raised pitch is what made the old ones sound like robots.
@@ -204,11 +281,15 @@ window.MBA = (function(){
       return true;
     }catch(e){ return false; }
   }
-  function hush(){ clearTimeout(speakTimer); if(synth){ try{ synth.cancel(); }catch(e){} } }
-  // Unlock speech on the first tap (needed on iPhone and iPad).
+  function hush(){ stopRec(); clearTimeout(speakTimer); if(synth){ try{ synth.cancel(); }catch(e){} } }
+  // Unlock sound and speech on the first tap (needed on iPhone and iPad), and let the recorded voice
+  // play even when an iPhone's ring/silent switch is set to silent.
   function unlockSpeech(){
-    if(!synth || unlockSpeech.done) return;
+    if(unlockSpeech.done) return;
     unlockSpeech.done = true;
+    try{ if(navigator.audioSession) navigator.audioSession.type = 'playback'; }catch(e){}
+    try{ ac(); }catch(e){}
+    if(!synth) return;
     try{ const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); }catch(e){}
   }
 
@@ -435,7 +516,7 @@ window.MBA = (function(){
       vb.setAttribute('aria-pressed', String(settings.voice && settings.sound));
       vb.setAttribute('aria-label', settings.voice && settings.sound ? 'Turn the narrator off' : 'Turn the narrator on');
       vb.title = settings.voice && settings.sound ? 'Narrator on' : 'Narrator off';
-      vb.hidden = !synth;
+      vb.hidden = !synth && !(window.AudioContext || window.webkitAudioContext);
     };
     sb.addEventListener('click', () => {
       settings.sound = !settings.sound; saveSettings(); paint();
@@ -480,6 +561,7 @@ window.MBA = (function(){
     get profiles(){ return profiles.slice(); }, profile, band, BAND_NAMES, setProfile, addProfile, updateProfile, removeProfile, PROFILE_KEYS,
     skills, skillsFor, peek, trickyFor, nextProblem, record,
     voiceInfo, setVoice, onVoices(f){ voiceWatchers.push(f); },
+    hasRec, setNatural(on){ settings.natural = !!on; saveSettings(); }, recMisses: () => Array.from(recMisses),
     OPS, LEVEL_NAMES, fact, makeProblem, choices, hint, confetti, toast, PRAISE, start, modes: {}
   };
 })();

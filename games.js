@@ -561,8 +561,10 @@
     const box = $('#gVoice'); if(!box) return;
     const vi = App.voiceInfo();
     const opts = vi.list.map(v => `<option value="${v.name.replace(/"/g, '&quot;')}"${v.name === vi.chosen ? ' selected' : ''}>${v.name}${v.natural ? ' \u2605' : ''}</option>`).join('');
+    const rec = App.hasRec(), natural = App.settings.natural !== false;
     box.innerHTML = `<h3>Narrator voice</h3>`
-      + `<p class="muted">The app uses the most natural-sounding voice this device has${vi.current ? ` (right now: <b>${vi.current}</b>)` : ''}. Voices marked \u2605 usually sound the most human. This setting is for this device only.</p>`
+      + (rec ? `<label class="check-row"><input type="checkbox" id="gNatural"${natural ? ' checked' : ''}> <span><b>Use the recorded natural voice</b> (recommended). The lessons, little-kid games and math problems are read by a recorded voice that sounds like a real person, the same on every device.</span></label>` : '')
+      + `<p class="muted">${rec && natural ? 'Anything that isn\u2019t recorded uses this device\u2019s voice: ' : 'The app uses the most natural-sounding voice this device has'}${vi.current ? ` (right now: <b>${vi.current}</b>)` : ''}. Voices marked \u2605 usually sound the most human. This setting is for this device only.</p>`
       + (vi.list.length
         ? `<div class="voice-row"><label class="field">Voice<select id="gVoiceSel"><option value="">Best available</option>${opts}</select></label><button class="btn primary" data-v="try">Try it</button></div>`
         : '<p class="muted">This browser has no voices to choose from.</p>')
@@ -618,6 +620,7 @@
       renderGrownups();
     });
     root.addEventListener('change', e => {
+      if(e.target.id === 'gNatural'){ App.setNatural(e.target.checked); renderVoice(); App.say('Hi! I will read the math to you. Let\u2019s count: one, two, three!'); return; }
       if(e.target.id !== 'gVoiceSel') return;
       App.setVoice(e.target.value);
       App.say('Hi! I will read the math to you. Let\u2019s count: one, two, three!');
